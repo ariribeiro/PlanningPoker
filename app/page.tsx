@@ -3,22 +3,45 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-function randomRoomId() {
-  return Math.random().toString(36).slice(2, 8);
+/** Extrai o id da sala de um link colado ou de um id cru. */
+function parseRoomId(input: string): string | null {
+  const value = input.trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    const match = url.pathname.match(/\/sala\/([^/?#]+)/);
+    if (match) return decodeURIComponent(match[1]);
+  } catch {
+    /* não é URL — tratar como id cru */
+  }
+  const clean = value.replace(/[^a-zA-Z0-9-]/g, "");
+  return clean || null;
 }
 
 export default function HomePage() {
   const router = useRouter();
-  const [code, setCode] = useState("");
+  const [input, setInput] = useState("");
+  const [error, setError] = useState(false);
 
   function createRoom() {
-    router.push(`/sala/${randomRoomId()}`);
+    const id = crypto.randomUUID();
+    // Marca este navegador como criador da sala (só ele reivindica o papel).
+    try {
+      localStorage.setItem(`pp-host-${id}`, crypto.randomUUID());
+    } catch {
+      /* ignora */
+    }
+    router.push(`/sala/${id}`);
   }
 
   function joinRoom(e: React.FormEvent) {
     e.preventDefault();
-    const clean = code.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
-    if (clean) router.push(`/sala/${clean}`);
+    const id = parseRoomId(input);
+    if (!id) {
+      setError(true);
+      return;
+    }
+    router.push(`/sala/${id}`);
   }
 
   return (
@@ -43,15 +66,18 @@ export default function HomePage() {
 
         <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
           <span className="h-px flex-1 bg-slate-200" />
-          ou entrar com um código
+          ou entrar em uma sala
           <span className="h-px flex-1 bg-slate-200" />
         </div>
 
         <form onSubmit={joinRoom} className="flex gap-2">
           <input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="ex.: k3f9a2"
+            value={input}
+            onChange={(e) => {
+              setInput(e.target.value);
+              setError(false);
+            }}
+            placeholder="Cole o link da sala"
             className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
           />
           <button
@@ -61,10 +87,14 @@ export default function HomePage() {
             Entrar
           </button>
         </form>
+        {error && (
+          <p className="mt-2 text-sm text-red-600">Link ou código inválido.</p>
+        )}
       </div>
 
       <p className="text-center text-xs text-slate-400">
-        Compartilhe o link da sala com o time para todos entrarem.
+        O link da sala é o convite — quem o tiver consegue entrar. Não é possível
+        adivinhar salas de outras pessoas.
       </p>
     </main>
   );

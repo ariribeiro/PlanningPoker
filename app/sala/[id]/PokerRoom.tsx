@@ -57,14 +57,29 @@ function Room({
   name: string;
   onRename: (name: string) => void;
 }) {
-  const [token] = useState(() => {
-    const key = `pp-token-${roomId}`;
-    let t = localStorage.getItem(key);
-    if (!t) {
-      t = crypto.randomUUID();
-      localStorage.setItem(key, t);
+  const [{ token, claimHost }] = useState(() => {
+    // Token de criador: gravado só pela home, no navegador que criou a sala.
+    let host: string | null = null;
+    try {
+      host = localStorage.getItem(`pp-host-${roomId}`);
+    } catch {
+      /* ignora */
     }
-    return t;
+    if (host) return { token: host, claimHost: true };
+
+    // Demais participantes: token comum, só para reconectar como o mesmo jogador.
+    const key = `pp-token-${roomId}`;
+    let t: string | null = null;
+    try {
+      t = localStorage.getItem(key);
+      if (!t) {
+        t = crypto.randomUUID();
+        localStorage.setItem(key, t);
+      }
+    } catch {
+      t = crypto.randomUUID();
+    }
+    return { token: t, claimHost: false };
   });
 
   const [state, setState] = useState<RoomState | null>(null);
@@ -80,7 +95,12 @@ function Room({
     room: roomId,
     onOpen() {
       socket.send(
-        JSON.stringify({ type: "join", name, token } satisfies ClientMessage),
+        JSON.stringify({
+          type: "join",
+          name,
+          token,
+          claimHost,
+        } satisfies ClientMessage),
       );
     },
     onMessage(event) {
@@ -158,8 +178,11 @@ function Room({
           <Link href="/" className="text-lg font-bold tracking-tight">
             🃏 Planning Poker
           </Link>
-          <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-sm text-slate-600">
-            {roomId}
+          <span
+            title={`Sala ${roomId}`}
+            className="rounded-md bg-slate-100 px-2 py-1 font-mono text-sm text-slate-600"
+          >
+            {roomId.slice(0, 8)}
           </span>
           <button
             onClick={copyLink}

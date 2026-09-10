@@ -37,11 +37,24 @@ const HOST_ONLY: ReadonlySet<ClientMessage["type"]> = new Set([
   "setFinalScore",
 ]);
 
+const MAX_PLAYERS = 50;
+const MAX_STORIES = 200;
+const MAX_MESSAGE_BYTES = 4000;
+/** Janela e teto para limitar mensagens por conexão. */
+const RATE_WINDOW_MS = 10_000;
+const RATE_MAX = 50;
+
 export default class PokerServer implements Party.Server {
   constructor(readonly room: Party.Room) {}
 
-  /** Primeiro token visto na sala; quem tiver esse token é o criador. */
+  /**
+   * Token do criador da sala. Definido uma única vez (primeiro `join` com
+   * `claimHost`) e persistido — ninguém mais pode assumir o papel depois,
+   * mesmo que a sala hiberne e todos saiam.
+   */
   hostToken: string | null = null;
+
+  private msgTimes = new Map<string, number[]>();
 
   state: ServerState = {
     players: {},
@@ -52,6 +65,11 @@ export default class PokerServer implements Party.Server {
     activeStoryId: null,
   };
 
+  async onStart() {
+    this.hostToken =
+      (await this.room.storage.get<string>("hostToken")) ?? null;
+  }
+
   onConnect(conn: Party.Connection) {
     conn.send(JSON.stringify({ type: "welcome", id: conn.id } satisfies ServerMessage));
     this.broadcastState();
@@ -59,10 +77,14 @@ export default class PokerServer implements Party.Server {
 
   onClose(conn: Party.Connection) {
     delete this.state.players[conn.id];
+    this.msgTimes.delete(conn.id);
     this.broadcastState();
   }
 
   onMessage(raw: string, sender: Party.Connection) {
+    if (typeof raw !== "string" || raw.length > MAX_MESSAGE_BYTES) return;
+    if (this.rateLimited(sender.id)) return;
+
     let msg: ClientMessage;
     try {
       msg = JSON.parse(raw);
@@ -77,7 +99,24 @@ export default class PokerServer implements Party.Server {
     switch (msg.type) {
       case "join": {
         const token = typeof msg.token === "string" && msg.token ? msg.token : null;
-        if (this.hostToken === null && token) this.hostToken = token;
+
+        if (
+          this.hostToken === null &&
+          msg.claimHost === true &&
+          token
+        ) {
+          this.hostToken = token;
+          void this.room.storage.put("hostToken", token);
+        }
+
+        if (
+          !this.state.players[sender.id] &&
+          Object.keys(this.state.players).length >= MAX_PLAYERS
+        ) {
+          sender.close(4001, "Sala cheia");
+          return;
+        }
+
         this.state.players[sender.id] = {
           id: sender.id,
           name: cleanName(msg.name),
@@ -126,6 +165,7 @@ export default class PokerServer implements Party.Server {
         break;
       }
       case "addStory": {
+        if (this.state.stories.length >= MAX_STORIES) break;
         const title = String(msg.title ?? "").trim().slice(0, 120);
         if (!title) break;
         const story: Story = {
@@ -181,6 +221,16 @@ export default class PokerServer implements Party.Server {
   private resetVotes() {
     this.state.revealed = false;
     for (const p of Object.values(this.state.players)) p.vote = null;
+  }
+
+  private rateLimited(connId: string): boolean {
+    const now = Date.now();
+    const times = (this.msgTimes.get(connId) ?? []).filter(
+      (t) => now - t < RATE_WINDOW_MS,
+    );
+    times.push(now);
+    this.msgTimes.set(connId, times);
+    return times.length > RATE_MAX;
   }
 
   private isHost(connId: string): boolean {

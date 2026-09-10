@@ -53,8 +53,10 @@ flowchart LR
 
 ## 👑 O criador da sala
 
-Quem abre a sala vira o **criador**, identificado por um token salvo no navegador
-(sobrevive a recarregar a página). Ações restritas ao criador:
+Quem abre a sala vira o **criador**: o navegador que a criou envia `claimHost` no
+primeiro acesso e o servidor grava esse token **uma única vez** (persistido — não
+muda mesmo que a sala esvazie ou hiberne, e ninguém mais consegue assumir o
+papel). Ações restritas ao criador:
 
 | Ação                                   | Criador | Demais |
 | -------------------------------------- | :-----: | :----: |
@@ -146,6 +148,24 @@ lib/
 O servidor responde com `welcome` (id da conexão) e `state` (snapshot completo da
 sala) a cada mudança, e **rejeita silenciosamente** mensagens de criador vindas de
 quem não é o criador.
+
+---
+
+## 🔒 Segurança
+
+- **Sem segredos no repositório.** Nada de chaves/tokens versionados; `.env*` e
+  `.vercel/` ficam no `.gitignore`.
+- **Salas não são adivinháveis.** O id é um `crypto.randomUUID()` (122 bits) — o
+  link é o convite; não há como enumerar salas alheias.
+- **Papel de criador à prova de corrida.** Só o navegador criador manda
+  `claimHost`, e o token é gravado uma vez e persistido.
+- **Validação no servidor.** Ações de criador são checadas por token; voto exige
+  história ativa e carta válida; nomes/títulos/descrições têm limite de tamanho.
+- **Anti-abuso.** Limite de ~50 mensagens / 10 s por conexão, teto de mensagem de
+  4 KB, e caps de 50 participantes e 200 histórias por sala.
+- **Toolchain.** `npm audit` aponta vulnerabilidades apenas em dependências de
+  build/dev (`postcss` via `next`, `undici` via `partykit`) — nada que rode no
+  navegador ou no worker de produção.
 
 ---
 

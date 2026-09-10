@@ -29,7 +29,14 @@ export type RoomState = {
 };
 
 export type ClientMessage =
-  | { type: "join"; name: string; spectator?: boolean; token?: string }
+  | {
+      type: "join";
+      name: string;
+      spectator?: boolean;
+      token?: string;
+      /** true apenas no navegador que criou a sala. */
+      claimHost?: boolean;
+    }
   | { type: "vote"; value: string }
   | { type: "reveal" }
   | { type: "reset" }
