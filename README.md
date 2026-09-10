@@ -5,6 +5,8 @@
 **Estimativas em equipe, em tempo real.**
 Salas efêmeras, sem cadastro — digite um nome, compartilhe o link e comece a votar.
 
+**▶️ [planning-poker-xi-three.vercel.app](https://planning-poker-xi-three.vercel.app)**
+
 <br/>
 
 ![Next.js](https://img.shields.io/badge/Next.js-15-000?logo=nextdotjs&logoColor=white)
@@ -88,16 +90,32 @@ dispositivo para ver a sincronização.
 
 ## ☁️ Deploy
 
+O app está em produção:
+
+| Parte             | URL                                                 |
+| ----------------- | --------------------------------------------------- |
+| App (Vercel)      | https://planning-poker-xi-three.vercel.app          |
+| Tempo real (PartyKit) | `planning-poker-2026.ariribeiro.partykit.dev`   |
+
+Para publicar do zero:
+
 1. **Servidor de tempo real**
 
    ```bash
-   npx partykit deploy
+   npx partykit login
+   npm run deploy:party
    ```
 
    Anote o host gerado, algo como `planning-poker-2026.SEU_USUARIO.partykit.dev`.
 
-2. **App Next.js** — deploy na Vercel (ou similar) definindo a variável de
-   ambiente `NEXT_PUBLIC_PARTYKIT_HOST` com o host do passo 1.
+2. **App Next.js** — deploy na Vercel definindo a variável de ambiente
+   `NEXT_PUBLIC_PARTYKIT_HOST` (Production + Preview) com o host do passo 1.
+   Como tem o prefixo `NEXT_PUBLIC_`, adicione como *não sensível*:
+
+   ```bash
+   vercel env add NEXT_PUBLIC_PARTYKIT_HOST production --no-sensitive
+   vercel deploy --prod
+   ```
 
 ---
 
