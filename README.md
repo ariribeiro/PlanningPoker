@@ -1,77 +1,129 @@
-# Planning Poker
+<div align="center">
 
-Planning poker multiusuário e em tempo real. Salas efêmeras, sem cadastro:
-você digita um nome e compartilha o link.
+# 🃏 Planning Poker
 
-## Stack
+**Estimativas em equipe, em tempo real.**
+Salas efêmeras, sem cadastro — digite um nome, compartilhe o link e comece a votar.
 
-| Camada        | Tecnologia                                  |
-| ------------- | ------------------------------------------- |
-| App / UI      | Next.js (App Router) + React + Tailwind CSS  |
-| Tempo real    | PartyKit (WebSocket, uma sala por partida)   |
-| Estado        | Em memória no servidor da sala (sem banco)   |
+<br/>
 
-O servidor esconde os votos até a revelação, então não dá para "trapacear"
-pelo DevTools.
+![Next.js](https://img.shields.io/badge/Next.js-15-000?logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
+![PartyKit](https://img.shields.io/badge/PartyKit-realtime-FF3E00)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss&logoColor=white)
 
-## Papel do criador da sala
+</div>
 
-Quem cria a sala vira o **criador** (identificado por um token salvo no
-navegador, sobrevive a recarregar a página). Só o criador pode:
+---
 
-- revelar as cartas e iniciar uma nova rodada;
-- criar, editar (título e descrição, num modal), ativar e excluir histórias;
-- trocar o baralho;
-- definir manualmente a pontuação final de cada história (o sistema mostra a
-  média dos votos como sugestão).
+## ✨ Funcionalidades
 
-Os demais participantes votam, viram espectadores e mudam o próprio nome.
+- 🔗 **Sala por link** — crie e compartilhe; entra quem tiver o endereço
+- ⚡ **Tempo real** — votos, presença e histórias sincronizam via WebSocket
+- 🙈 **Votos ocultos** — o servidor só revela as cartas depois do "Revelar"
+- 👑 **Papel de criador** — controles sensíveis restritos a quem abriu a sala
+- 📝 **Histórias** — lista lateral com título, descrição e pontuação final
+- 📊 **Resultado** — média, distribuição de votos e selo de consenso
+- 🎴 **Baralhos** — Fibonacci, Fibonacci modificada, camiseta, potências de 2
+- 👀 **Modo espectador** — participa da sala sem votar
 
-## Rodando localmente
+---
+
+## 🧱 Stack
+
+| Camada        | Tecnologia                                   | Por quê                                  |
+| ------------- | -------------------------------------------- | ---------------------------------------- |
+| App / UI      | Next.js (App Router) + React + Tailwind CSS  | Um projeto só para front e rotas         |
+| Tempo real    | PartyKit (WebSocket, uma sala por partida)   | "Salas multiplayer" com o mínimo de código |
+| Estado        | Em memória no servidor da sala               | Salas são efêmeras — sem banco de dados  |
+
+```mermaid
+flowchart LR
+    A[Navegador<br/>Next.js + React] -- WebSocket --> B[Sala PartyKit<br/>estado em memória]
+    B -- broadcast do estado --> A
+    C[Outros participantes] -- WebSocket --> B
+    B -- broadcast do estado --> C
+```
+
+---
+
+## 👑 O criador da sala
+
+Quem abre a sala vira o **criador**, identificado por um token salvo no navegador
+(sobrevive a recarregar a página). Ações restritas ao criador:
+
+| Ação                                   | Criador | Demais |
+| -------------------------------------- | :-----: | :----: |
+| Votar, virar espectador, mudar de nome |   ✅    |   ✅   |
+| Revelar cartas / nova rodada           |   ✅    |   —    |
+| Criar, editar, ativar e excluir histórias |  ✅  |   —    |
+| Trocar o baralho                       |   ✅    |   —    |
+| Definir a pontuação final da história  |   ✅    |   —    |
+
+> Só é possível votar com uma história selecionada. Ao encerrar a votação, o
+> sistema calcula a média e sugere a pontuação — o criador confirma ou ajusta.
+
+---
+
+## 🚀 Rodando localmente
 
 ```bash
 npm install
 npm run dev
 ```
 
-Isso sobe dois processos:
+Sobe dois processos em paralelo:
 
-- **Next.js** em http://localhost:3000
-- **PartyKit** em http://127.0.0.1:1999 (configurado em `.env.local`)
+| Serviço  | Endereço                  | Observação                        |
+| -------- | ------------------------- | -------------------------------- |
+| Next.js  | http://localhost:3000     | interface                        |
+| PartyKit | http://127.0.0.1:1999     | tempo real (definido em `.env.local`) |
 
-Abra `http://localhost:3000`, crie uma sala e abra o mesmo link em outra aba
-ou dispositivo para ver a sincronização.
+Abra `http://localhost:3000`, crie uma sala e abra o mesmo link em outra aba ou
+dispositivo para ver a sincronização.
 
-## Deploy
+---
 
-1. **Servidor de tempo real:**
+## ☁️ Deploy
+
+1. **Servidor de tempo real**
 
    ```bash
    npx partykit deploy
    ```
 
-   Anote o host gerado (ex.: `planning-poker-2026.SEU_USUARIO.partykit.dev`).
+   Anote o host gerado, algo como `planning-poker-2026.SEU_USUARIO.partykit.dev`.
 
-2. **App Next.js:** faça deploy na Vercel (ou similar) e defina a env var
-   `NEXT_PUBLIC_PARTYKIT_HOST` com o host do passo 1.
+2. **App Next.js** — deploy na Vercel (ou similar) definindo a variável de
+   ambiente `NEXT_PUBLIC_PARTYKIT_HOST` com o host do passo 1.
 
-## Estrutura
+---
+
+## 📁 Estrutura
 
 ```
-app/                 páginas Next.js
-  page.tsx           tela inicial (criar / entrar)
-  sala/[id]/         sala de planning poker (client component)
-party/server.ts      servidor PartyKit (estado + protocolo)
-lib/                 tipos e baralhos compartilhados
+app/
+  page.tsx            tela inicial — criar sala / entrar por código
+  sala/[id]/
+    page.tsx
+    PokerRoom.tsx      sala completa (client component)
+party/
+  server.ts           servidor PartyKit — estado + protocolo
+lib/
+  types.ts            tipos compartilhados (cliente + servidor)
+  decks.ts            baralhos e utilitários
 ```
 
-## Protocolo (cliente → servidor)
+---
 
-Todos: `join` · `vote` · `setSpectator` · `rename`
+## 🔌 Protocolo (cliente → servidor)
 
-Só o criador: `reveal` · `reset` · `setDeck` · `addStory` · `updateStory` ·
-`deleteStory` · `setActiveStory` · `setFinalScore`
+| Grupo       | Mensagens                                                                             |
+| ----------- | ------------------------------------------------------------------------------------- |
+| Todos       | `join` · `vote` · `setSpectator` · `rename`                                           |
+| Só o criador | `reveal` · `reset` · `setDeck` · `addStory` · `updateStory` · `deleteStory` · `setActiveStory` · `setFinalScore` |
 
-O servidor responde com `welcome` (id da conexão) e `state` (snapshot completo
-da sala) a cada mudança, e rejeita silenciosamente mensagens de criador vindas
-de quem não é o criador.
+O servidor responde com `welcome` (id da conexão) e `state` (snapshot completo da
+sala) a cada mudança, e **rejeita silenciosamente** mensagens de criador vindas de
+quem não é o criador.
