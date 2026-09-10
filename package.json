@@ -2,6 +2,8 @@
   "name": "planning-poker-2026",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "author": "Ari Ribeiro",
   "scripts": {
     "dev": "concurrently -k -n next,party -c blue,magenta \"npm:dev:next\" \"npm:dev:party\"",
     "dev:next": "next dev",

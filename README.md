@@ -12,6 +12,7 @@ Salas efêmeras, sem cadastro — digite um nome, compartilhe o link e comece a 
 ![PartyKit](https://img.shields.io/badge/PartyKit-realtime-FF3E00)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow)
 
 </div>
 
@@ -127,3 +128,14 @@ lib/
 O servidor responde com `welcome` (id da conexão) e `state` (snapshot completo da
 sala) a cada mudança, e **rejeita silenciosamente** mensagens de criador vindas de
 quem não é o criador.
+
+---
+
+## 🤝 Contribuindo
+
+Issues e pull requests são bem-vindos. Antes de abrir um PR, rode
+`npm run build` para garantir que o type-check passa.
+
+## 📄 Licença
+
+[MIT](LICENSE) © Ari Ribeiro
